@@ -19,4 +19,21 @@
 - fake_useragent:伪装请求头的库。
 - threading:多线程库，加快爬取速度
 
-### 
+### 设计遇到的问题
+#### 1）中文乱码问题
+分析requests的源代码发现，text返回的是处理过的Unicode型的数据，而使用content返回的是bytes型的原始数据。也就是说，r.content相对于r.text来说节省了计算资源，content是把内容bytes返回. 而text是decode成Unicode。\
+如果直接采用下面的代码获取数据，会出现中文乱码的问题。
+```python
+data = requests.get(url,headers = headers).text
+```
+**原因在于：《HTTP权威指南》里第16章国际化里提到，如果HTTP响应中Content-Type字段没有指定charset，则默认页面是'ISO-8859-1'编码。这处理英文页面当然没有问题，但是中文页面，就会有乱码了！**\
+**解决办法：如果在确定使用text，并已经得知该站的字符集编码（使用apparent_encoding可以获得真实编码）时，可以使用 r.encoding = ‘xxx’ 模式， 当你指定编码后，requests在text时会根据你设定的字符集编码进行转换。**
+```python
+>>> response = requests.get(url,headers = headers)
+>>> response.apparent_encoding
+'GB2312'
+>>> response.encoding = response.apparent_encoding
+>>> data = response.text
+```
+这样就不会有中文乱码的问题了。
+
