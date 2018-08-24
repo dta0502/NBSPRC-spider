@@ -14,10 +14,10 @@
 [统计局网站提供的页面](http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2016/index.html)按照：`省-市-县-镇-村`这样的层次关系来组织页面。统计局的网站对于爬虫的限制也不多，我只使用一个ip爬取全部数据的过程中请求被拒绝的情况很少。
 
 ### 本设计主要调用的第三方库
-- requests:我这里用来请求网站。
-- lxml:Html/XML的解析器，主要功能是解析和提取HTML/XML数据。
-- fake_useragent:伪装请求头的库。
-- threading:多线程库，加快爬取速度
+- requests---我这里用来请求网站。
+- lxml---HTML/XML的解析器，主要功能是解析和提取HTML/XML数据。
+- fake_useragent---伪装请求头的库。
+- threading---多线程库，加快爬取速度。
 
 ### 设计遇到的问题
 #### 1）中文乱码问题
@@ -123,4 +123,14 @@ df_county_sorted = df_county.sort_values(by = ['code']) #按1列进行升序排�
 df_county_sorted.to_csv('county.csv', sep=',', header=True, index=False)
 ```
 
+#### 4）数据量过大，内存不足
+我把整个爬虫放到1G内存的VPS上进行爬取，运行一段时间后就会被killed。我查看日志发现，这是内存不足导致的，OOM killer杀死了这个占用很大内存的非内核进程以防止内存耗尽影响系统运行。具体分析见：[Linux下Python程序Killed，分析其原因](https://blog.csdn.net/dta0502/article/details/82016616)。\
+最后我采取分段爬取居委会一级的数据，每次爬取5000个街道的URL，具体代码：
+```python
+village = getVillage(df_town['link'][0:5000])
+df_village = pd.DataFrame(village)
+# 信息写入csv文件
+df_village.to_csv('village-0.csv', sep=',', header=True, index=False)
+```
+最后将所有爬取得到的csv文件进行合并得到全部居委会信息。
 
