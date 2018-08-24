@@ -1,5 +1,7 @@
 # 国家统计用区划代码和城乡划分代码---源码、详细分析、数据
 
+**详细分析见个人博客：[国家统计局统计用区划代码和城乡划分代码---爬虫、详细分析](https://blog.csdn.net/dta0502/article/details/82024462)。**
+
 这里实现了`国家统计用区划代码和城乡划分代码`的爬取。本仓库包含：
 - 爬虫完整代码---[Urban-and-rural-statistics-spider.py](https://github.com/dta0502/China-zoning-code-for-statistics-spider/blob/master/Urban-and-rural-statistics-spider.py)
 - 居委会级爬虫代码（因为内存不足，所以这里分段爬取，最后合并csv文件）---[Village-Spider-Test.py](https://github.com/dta0502/China-zoning-code-for-statistics-spider/blob/master/Village-Spider-Test.py)
