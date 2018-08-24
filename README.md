@@ -21,12 +21,14 @@
 
 ### 设计遇到的问题
 #### 1）中文乱码问题
-分析requests的源代码发现，text返回的是处理过的Unicode型的数据，而使用content返回的是bytes型的原始数据。也就是说，r.content相对于r.text来说节省了计算资源，content是把内容bytes返回. 而text是decode成Unicode。\
+分析requests的源代码发现，text返回的是处理过的Unicode型的数据，而使用content返回的是bytes型的原始数据。也就是说，r.content相对于r.text来说节省了计算资源，content是把内容bytes返回. 而text是decode成Unicode。
+
 如果直接采用下面的代码获取数据，会出现中文乱码的问题。
 ```python
 data = requests.get(url,headers = headers).text
 ```
 **原因在于：《HTTP权威指南》里第16章国际化里提到，如果HTTP响应中Content-Type字段没有指定charset，则默认页面是'ISO-8859-1'编码。这处理英文页面当然没有问题，但是中文页面，就会有乱码了！**\
+
 **解决办法：如果在确定使用text，并已经得知该站的字符集编码（使用apparent_encoding可以获得真实编码）时，可以使用 r.encoding = ‘xxx’ 模式， 当你指定编码后，requests在text时会根据你设定的字符集编码进行转换。**
 ```python
 >>> response = requests.get(url,headers = headers)
@@ -36,4 +38,80 @@ data = requests.get(url,headers = headers).text
 >>> data = response.text
 ```
 这样就不会有中文乱码的问题了。
+
+#### 2）多线程碰到的问题1---csv文件中出现很多空值
+下面是出现这个问题的区级信息获取的部分代码：
+```python
+qurl = Queue() #队列
+thread_num = 10 #进程数
+#下面三个全局变量是每个区的代码、URL、名称信息
+countyCode = []
+countyURL = []
+countyName = []
+
+def produce_url(url_list):
+    for url in url_list:
+        qurl.put(url) # 生成URL存入队列，等待其他线程提取
+
+def getCounty():
+    while not qurl.empty(): # 保证url遍历结束后能退出线程
+        url = qurl.get() # 从队列中获取URL
+        response = requests.get(url,headers = headers)
+        response.encoding = response.apparent_encoding
+        data = response.text
+        selector = etree.HTML(data)
+        countyList = selector.xpath('//tr[@class="countytr"]')
+        #下面是爬取每个区的代码、URL
+        for i in countyList:
+            countyCode.append(i.xpath('td[1]/a/text()'))
+            countyURL.append(i.xpath('td[1]/a/@href'))
+            countyName.append(i.xpath('td[2]/a/text()'))
+
+def run(url_list):
+    produce_url(url_list)
+    
+    ths = []
+    for _ in range(thread_num):
+        th = Thread(target = getCounty)
+        th.start()
+        ths.append(th)
+    for th in ths:
+        th.join()
+
+run(cityURL_list)
+```
+这里有几个问题：\
+首先，下面这个解析代码获取的是一个列表：
+```python
+i.xpath('td[1]/a/text()
+```
+而外面套着的append操作则使得列表嵌套列表（生成一个二维列表）：
+```python
+countyCode.append(i.xpath('td[1]/a/text()'))
+```
+同时又有三个全部变量来存储数据：
+```python
+#下面三个全局变量是每个区的代码、URL、名称信息
+countyCode = []
+countyURL = []
+countyName = []
+```
+
+在单线程下，这个操作是没有问题的，但是由于这里是多线程实现，多个线程同时运行，例如：线程1写入countyCode这个全局变量，然后在写入countyURL这个变量之前，线程2写入了它对应的countyURL，导致了线程1的countyCode对应了线程2的countyURL，这样整个列表对应顺序出现了错乱。
+
+**解决办法：使用字典封装每个区的三个信息，这部分实现如下代码所示。**
+```python
+county = [] #记录区级信息的字典（全局）
+        #下面是爬取每个区的代码、URL
+        for i in countyList:
+            countyCode = i.xpath('td[1]/a/text()')
+            countyLink = i.xpath('td[1]/a/@href')
+            countyName = i.xpath('td[2]/a/text()')
+            #上面得到的是列表形式的，下面将其每一个用字典存储
+            for j in range(len(countyLink)):
+                countyURL = url[:-9] + countyLink[j]
+                county.append({'code':countyCode[j],'link':countyURL,'name':countyName[j]})
+```
+这样在多线程操作时，每个线程写入的都是完整的一个区的信息。
+
 
