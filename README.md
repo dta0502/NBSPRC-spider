@@ -27,7 +27,7 @@
 ```python
 data = requests.get(url,headers = headers).text
 ```
-**原因在于：《HTTP权威指南》里第16章国际化里提到，如果HTTP响应中Content-Type字段没有指定charset，则默认页面是'ISO-8859-1'编码。这处理英文页面当然没有问题，但是中文页面，就会有乱码了！**\
+**原因在于：《HTTP权威指南》里第16章国际化里提到，如果HTTP响应中Content-Type字段没有指定charset，则默认页面是'ISO-8859-1'编码。这处理英文页面当然没有问题，但是中文页面，就会有乱码了！**
 
 **解决办法：如果在确定使用text，并已经得知该站的字符集编码（使用apparent_encoding可以获得真实编码）时，可以使用 r.encoding = ‘xxx’ 模式， 当你指定编码后，requests在text时会根据你设定的字符集编码进行转换。**
 ```python
@@ -112,6 +112,15 @@ county = [] #记录区级信息的字典（全局）
                 countyURL = url[:-9] + countyLink[j]
                 county.append({'code':countyCode[j],'link':countyURL,'name':countyName[j]})
 ```
-这样在多线程操作时，每个线程写入的都是完整的一个区的信息。
+这样在多线程操作时，每个线程写入的都是完整的一个区的信息，不会出现对应错误。
+
+#### 3）多线程碰到的问题2---信息顺序混乱
+这是多线程无法避免的问题，不同线程写入时间存在先后关系。我这里先完成多线程信息采集，然后对这个“字典”列表进行排序，最后再写入csv文件。代码如下所示：
+```python
+county = getCounty(df_city['link'])
+df_county = pd.DataFrame(county)
+df_county_sorted = df_county.sort_values(by = ['code']) #按1列进行升序排序
+df_county_sorted.to_csv('county.csv', sep=',', header=True, index=False)
+```
 
 
