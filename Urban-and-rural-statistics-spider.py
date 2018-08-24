@@ -1,6 +1,4 @@
-
 # 库函数导入
-
 import requests
 from lxml import etree
 import csv
@@ -12,7 +10,6 @@ from fake_useragent import UserAgent
 
 
 # 网页爬取函数
-
 # 下面加入了num_retries这个参数，经过测试网络正常一般最多retry一次就能获得结果
 def getUrl(url,num_retries = 5):
     ua = UserAgent()
@@ -33,9 +30,7 @@ def getUrl(url,num_retries = 5):
             print("error: %s" % e + " " + url)
             return #返回空值，程序运行报错
 
-
 # 获取省级代码函数
-
 def getProvince(url):
     province = []
     data = getUrl(url)
@@ -49,19 +44,7 @@ def getProvince(url):
             province.append({'name':provinceName[j],'link':provinceURL})
     return province
 
-
-
-pro = getProvince("http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2016/index.html")
-
-df_province = pd.DataFrame(pro)
-df_province['link']
-
-# 信息写入csv文件
-df_province.to_csv('province.csv', sep=',', header=True, index=False)
-
-
 # 获取市级代码函数
-
 def getCity(url_list):
     city_all = []
     for url in url_list:
@@ -80,16 +63,7 @@ def getCity(url_list):
         city_all.extend(city) #所有省的城市信息合并在一起
     return city_all
 
-city = getCity(df_province['link'])
-
-df_city = pd.DataFrame(city)
-
-# 信息写入csv文件
-df_city.to_csv('city.csv', sep=',', header=True, index=False)
-
-
 # 获取区级代码函数---多线程实现
-
 def getCounty(url_list):
     queue_county = Queue() #队列
     thread_num = 10 #进程数
@@ -129,20 +103,7 @@ def getCounty(url_list):
     run(url_list)
     return county
 
-county = getCounty(df_city['link'])
-
-df_county = pd.DataFrame(county)
-
-
-# 排序:由于多线程的关系，数据的顺序已经被打乱，所以这里按照区代码进行“升序”排序。
-df_county_sorted = df_county.sort_values(by = ['code']) #按1列进行升序排序
-
-# 信息写入csv文件
-df_county_sorted.to_csv('county.csv', sep=',', header=True, index=False)
-
-
 # 获取街道代码函数---多线程实现
-
 def getTown(url_list):
     queue_town = Queue() #队列
     thread_num = 50 #进程数
@@ -182,23 +143,11 @@ def getTown(url_list):
     run(url_list)
     return town
 
-town = getTown(df_county['link'])
-
-df_town = pd.DataFrame(town)
-
-# 排序:由于多线程的关系，数据的顺序已经被打乱，所以这里按照街道代码进行“升序”排序。
-df_town_sorted = df_town.sort_values(by = ['code']) #按1列进行升序排序
-
-# 信息写入csv文件
-df_town_sorted.to_csv('town.csv', sep=',', header=True, index=False)
-
-
 # 获取居委会代码函数---多线程实现
-
 def getVillage(url_list):
     queue_village = Queue() #队列
     thread_num = 200 #进程数
-    town = [] #记录街道信息的字典（全局）
+    village = [] #记录街道信息的字典（全局）
     
     def produce_url(url_list):
         for url in url_list:
@@ -217,7 +166,7 @@ def getVillage(url_list):
                 villageName = i.xpath('td[3]/text()')
                 #上面得到的是列表形式的，下面将其每一个用字典存储
                 for j in range(len(villageCode)):
-                    town.append({'code':villageCode[j],'UrbanRuralCode':UrbanRuralCode[j],'name':villageName[j]})
+                    village.append({'code':villageCode[j],'UrbanRuralCode':UrbanRuralCode[j],'name':villageName[j]})
                 
     def run(url_list):
         produce_url(url_list)
@@ -231,14 +180,47 @@ def getVillage(url_list):
             th.join()
             
     run(url_list)
-    return town
+    return village
 
+###########################
+###########################
+#省级信息获取
+pro = getProvince("http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2016/index.html")
+df_province = pd.DataFrame(pro)
+df_province['link']
+# 信息写入csv文件
+df_province.to_csv('province.csv', sep=',', header=True, index=False)
 
+###########################
+#市级信息获取
+city = getCity(df_province['link'])
+df_city = pd.DataFrame(city)
+# 信息写入csv文件
+df_city.to_csv('city.csv', sep=',', header=True, index=False)
+
+###########################
+#区级信息获取
+county = getCounty(df_city['link'])
+df_county = pd.DataFrame(county)
+# 排序:由于多线程的关系，数据的顺序已经被打乱，所以这里按照区代码进行“升序”排序。
+df_county_sorted = df_county.sort_values(by = ['code']) #按1列进行升序排序
+# 信息写入csv文件
+df_county_sorted.to_csv('county.csv', sep=',', header=True, index=False)
+
+###########################
+#街道信息获取
+town = getTown(df_county['link'])
+df_town = pd.DataFrame(town)
+# 排序:由于多线程的关系，数据的顺序已经被打乱，所以这里按照街道代码进行“升序”排序。
+df_town_sorted = df_town.sort_values(by = ['code']) #按1列进行升序排序
+# 信息写入csv文件
+df_town_sorted.to_csv('town.csv', sep=',', header=True, index=False)
+
+###########################
+#居委会信息获取
 village = getVillage(df_town['link'])
 df_village = pd.DataFrame(village)
-
 # 排序:由于多线程的关系，数据的顺序已经被打乱，所以这里按照街道代码进行“升序”排序。
 df_village_sorted = df_village.sort_values(by = ['code']) #按1列进行升序排序
-
 # 信息写入csv文件
 df_village_sorted.to_csv('village.csv', sep=',', header=True, index=False)
