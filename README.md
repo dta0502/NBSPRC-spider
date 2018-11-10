@@ -1,5 +1,14 @@
 # 国家统计用区划代码和城乡划分代码---源码、详细分析、数据
 
+---
+
+2018.11.10更新：
+- 缺失数据补充:[Issues #1](https://github.com/dta0502/NBSPRC-spider/issues/1)
+
+---
+
+
+
 **详细分析见个人博客：[国家统计局统计用区划代码和城乡划分代码---爬虫、详细分析](https://blog.csdn.net/dta0502/article/details/82024462)。**
 
 这里实现了`国家统计用区划代码和城乡划分代码`的爬取。本仓库包含：
@@ -17,16 +26,10 @@
     [市级数据.csv](https://github.com/dta0502/China-zoning-code-for-statistics-spider/blob/master/data/city.csv)\
     [区级数据.csv](https://github.com/dta0502/China-zoning-code-for-statistics-spider/blob/master/data/county.csv)\
     [街道数据.csv](https://github.com/dta0502/China-zoning-code-for-statistics-spider/blob/master/data/town.csv)\
-    [居委会数据.csv](https://github.com/dta0502/NBSPRC-spider/blob/master/data/village_all.csv)
+    [居委会数据.csv](https://github.com/dta0502/NBSPRC-spider/blob/master/data/village.csv)
 
 ## 总体说明
 统计局网站提供的[2016年统计用区划代码和城乡划分代码(截止2016年07月31日)](http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2016/index.html)按照：`省-市-县-镇-村`这样的层次关系来组织页面。统计局的网站对于爬虫的限制也不多，我只使用一个ip就爬取全部数据，爬取的过程中请求被拒绝的情况很少。
-
-### 本设计主要调用的第三方库
-- requests---我这里用来请求网站。
-- lxml---HTML/XML的解析器，主要功能是解析和提取HTML/XML数据。
-- fake_useragent---伪装请求头的库。
-- threading---多线程库，加快爬取速度。
 
 ### [设计遇到的问题](https://github.com/dta0502/China-zoning-code-for-statistics-spider/blob/master/docs/%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90.md)
 - 中文乱码问题
