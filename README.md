@@ -2,12 +2,16 @@
 
 ---
 
-2018.11.10更新：
-- 缺失数据补充:[Issues #1](https://github.com/dta0502/NBSPRC-spider/issues/1)
+2018.12.02更新：
+- 修改[爬虫代码](https://github.com/dta0502/NBSPRC-spider/blob/master/Urban-and-rural-statistics-spider.py)，添加了中山市/东莞市下面没有区级单位的异常处理。
+- 页面源码的编码为`GB2312`，实际为`GBK`，因此手工指定编码为`GBK`：[Issues #1](https://github.com/dta0502/NBSPRC-spider/issues/2)
 
 2018.11.30更新：
 - 更新`village.csv`文件，按照`code`顺序从小到大排列，看起来更方便
 - 更新**数据总结**中的错误
+
+2018.11.10更新：
+- 缺失数据补充:[Issues #1](https://github.com/dta0502/NBSPRC-spider/issues/1)
 
 ---
 
