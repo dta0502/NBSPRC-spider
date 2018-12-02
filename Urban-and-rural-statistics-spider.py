@@ -6,17 +6,15 @@ import time
 import pandas as pd
 from queue import Queue
 from threading import Thread
-from fake_useragent import UserAgent
 
 
 # 网页爬取函数
 # 下面加入了num_retries这个参数，经过测试网络正常一般最多retry一次就能获得结果
 def getUrl(url,num_retries = 5):
-    ua = UserAgent()
-    headers = {'User-Agent':ua.random}
+    headers = {'User-Agent':"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36"}
     try:
         response = requests.get(url,headers = headers)
-        response.encoding = response.apparent_encoding
+        response.encoding = 'GBK'
         data = response.text
         return data
     except Exception as e:
@@ -126,7 +124,11 @@ def getTown(url_list):
                 townName = i.xpath('td[2]/a/text()')
                 #上面得到的是列表形式的，下面将其每一个用字典存储
                 for j in range(len(townLink)):
-                    townURL = url[:-11] + townLink[j]
+                    # 中山市、东莞市的处理
+                    if url == 'http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2016/44/4419.html' or url == 'http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2016/44/4420.html':
+                        townURL = url[:-9] + townLink[j]
+                    else:
+                        townURL = url[:-11] + townLink[j]
                     town.append({'code':townCode[j],'link':townURL,'name':townName[j]})
                 
     def run(url_list):
@@ -187,7 +189,7 @@ def getVillage(url_list):
 #省级信息获取
 pro = getProvince("http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2016/index.html")
 df_province = pd.DataFrame(pro)
-df_province['link']
+df_province.info()
 # 信息写入csv文件
 df_province.to_csv('province.csv', sep=',', header=True, index=False)
 
@@ -195,6 +197,7 @@ df_province.to_csv('province.csv', sep=',', header=True, index=False)
 #市级信息获取
 city = getCity(df_province['link'])
 df_city = pd.DataFrame(city)
+df_city.info()
 # 信息写入csv文件
 df_city.to_csv('city.csv', sep=',', header=True, index=False)
 
@@ -204,15 +207,24 @@ county = getCounty(df_city['link'])
 df_county = pd.DataFrame(county)
 # 排序:由于多线程的关系，数据的顺序已经被打乱，所以这里按照区代码进行“升序”排序。
 df_county_sorted = df_county.sort_values(by = ['code']) #按1列进行升序排序
+df_county_sorted.info()
 # 信息写入csv文件
 df_county_sorted.to_csv('county.csv', sep=',', header=True, index=False)
 
 ###########################
 #街道信息获取
-town = getTown(df_county['link'])
+#中山市、东莞市的特殊处理（他们的链接在df_city中）
+url_list = list()
+for url in df_county['link']:
+    url_list.append(url)
+town_link_list = df_city[df_city['name'].isin(['中山市','东莞市'])]['link'].values
+for town_link in town_link_list:
+    url_list.append(town_link)
+town = getTown(url_list)
 df_town = pd.DataFrame(town)
 # 排序:由于多线程的关系，数据的顺序已经被打乱，所以这里按照街道代码进行“升序”排序。
 df_town_sorted = df_town.sort_values(by = ['code']) #按1列进行升序排序
+df_town_sorted.info()
 # 信息写入csv文件
 df_town_sorted.to_csv('town.csv', sep=',', header=True, index=False)
 
@@ -222,5 +234,6 @@ village = getVillage(df_town['link'])
 df_village = pd.DataFrame(village)
 # 排序:由于多线程的关系，数据的顺序已经被打乱，所以这里按照街道代码进行“升序”排序。
 df_village_sorted = df_village.sort_values(by = ['code']) #按1列进行升序排序
+df_village_sorted.info()
 # 信息写入csv文件
 df_village_sorted.to_csv('village.csv', sep=',', header=True, index=False)
